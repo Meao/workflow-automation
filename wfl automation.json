@@ -1,0 +1,1768 @@
+{
+  "name": "Email Task Automation - Full Lifecycle",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📧 PHASE 1: COLLECT\nTriggers: Manual (testing) or Email (production)\n- Monitors inbox every 20 minutes\n- Classifies incoming messages\n- Extracts task information\n- Requests clarification if needed",
+        "height": 280,
+        "width": 380
+      },
+      "id": "sticky-phase1",
+      "name": "Sticky Note - Phase 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📧 TRIGGER\nStarts the workflow manually for testing.\nIn production, replace with:\n- Email Trigger (IMAP/Gmail)\n- Webhook (for form submissions)\n- Schedule Trigger (batch processing)",
+        "height": 240,
+        "width": 320
+      },
+      "id": "4a9f2473-485c-4bc5-b904-551519aad784",
+      "name": "Sticky Note - Trigger",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute",
+              "minute": 20
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "email-trigger",
+      "name": "Email Trigger (Optional)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        580
+      ],
+      "disabled": true,
+      "credentials": {
+        "imap": {
+          "id": "imap-cred",
+          "name": "IMAP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ [\n  {\n    \"id\": \"msg-001\",\n    \"from\": \"client@example.com\",\n    \"subject\": \"Feature Request: Add Export Button\",\n    \"snippet\": \"Nous voulons faire un bouton d'export PDF dans la page produits\",\n    \"date\": \"2025-01-16T10:30:00Z\",\n    \"attachments\": []\n  },\n  {\n    \"id\": \"msg-002\",\n    \"from\": \"user@company.com\",\n    \"subject\": \"Bug: PDF Generation Fails\",\n    \"snippet\": \"Le PDF ne se crée pas, j'ai essayé 5 fois sur la page facturation\",\n    \"date\": \"2025-01-16T11:00:00Z\",\n    \"attachments\": []\n  },\n  {\n    \"id\": \"msg-003\",\n    \"from\": \"manager@example.com\",\n    \"subject\": \"Re: Task #123 Approval\",\n    \"snippet\": \"Ok, commencez par la fiche suggestions. Approuvé pour facturation.\",\n    \"date\": \"2025-01-16T14:20:00Z\",\n    \"attachments\": []\n  },\n  {\n    \"id\": \"msg-004\",\n    \"from\": \"dev@company.com\",\n    \"subject\": \"Re: Estimation - Task #123\",\n    \"snippet\": \"Planning poker résultat: 5 points story = 4-5 heures\",\n    \"date\": \"2025-01-16T15:45:00Z\",\n    \"attachments\": []\n  },\n  {\n    \"id\": \"msg-005\",\n    \"from\": \"qa@company.com\",\n    \"subject\": \"Task #123 - Testing Complete\",\n    \"snippet\": \"Tests validés sur staging. Prêt pour production.\",\n    \"date\": \"2025-01-16T16:30:00Z\",\n    \"attachments\": []\n  }\n] }}"
+      },
+      "id": "test-data",
+      "name": "Test Email Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "cond-feature",
+                    "leftValue": "={{ ($json.snippet + ' ' + $json.subject).toLowerCase() }}",
+                    "rightValue": "feature|faire|nouveau|ajouter|créer|demande|request|mockup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "feature"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "cond-bug",
+                    "leftValue": "={{ ($json.snippet + ' ' + $json.subject).toLowerCase() }}",
+                    "rightValue": "bug|erreur|ne.*pas|problème|cassé|fails|broken",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "bug"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "cond-approval",
+                    "leftValue": "={{ ($json.snippet + ' ' + $json.subject).toLowerCase() }}",
+                    "rightValue": "approuvé|approved|commencez|validé|go ahead|facturation|billable",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "approval"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "cond-estimate",
+                    "leftValue": "={{ ($json.snippet + ' ' + $json.subject).toLowerCase() }}",
+                    "rightValue": "\\d+.*heure|\\d+.*hour|\\d+.*point|planning poker|estimation|estimate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "estimation"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "cond-testing",
+                    "leftValue": "={{ ($json.snippet + ' ' + $json.subject).toLowerCase() }}",
+                    "rightValue": "test|validé|staging|qa|review|prêt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "testing"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "classify-message",
+      "name": "Classify Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        680,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "type",
+              "name": "messageType",
+              "value": "feature",
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "value": "medium",
+              "type": "string"
+            },
+            {
+              "id": "board",
+              "name": "defaultBoard",
+              "value": "Product Backlog",
+              "type": "string"
+            },
+            {
+              "id": "column",
+              "name": "defaultColumn",
+              "value": "Backlog",
+              "type": "string"
+            },
+            {
+              "id": "tags",
+              "name": "defaultTags",
+              "value": "feature,to-estimate",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "aiPrompt",
+              "value": "Extract feature request details and check if information is complete.\n\nFormat:\n{\n  \"complete\": true/false,\n  \"missingInfo\": [\"list of missing details\"],\n  \"tasks\": [{\n    \"subject\": \"Short title\",\n    \"description\": \"WHERE: Page/location\\nACTION: Steps\\nRESULT: Expected outcome\",\n    \"estimatedHours\": null,\n    \"tags\": [\"feature\", \"to-estimate\"],\n    \"attachmentsNeeded\": [\"mockup\", \"screenshot\"]\n  }]\n}\n\nIMPORTANT: Respond ONLY with valid JSON.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-feature",
+      "name": "Feature Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "type",
+              "name": "messageType",
+              "value": "bug",
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "value": "high",
+              "type": "string"
+            },
+            {
+              "id": "board",
+              "name": "defaultBoard",
+              "value": "Bug Tracker",
+              "type": "string"
+            },
+            {
+              "id": "column",
+              "name": "defaultColumn",
+              "value": "To Investigate",
+              "type": "string"
+            },
+            {
+              "id": "tags",
+              "name": "defaultTags",
+              "value": "bug,urgent",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "aiPrompt",
+              "value": "Extract bug details and check completeness.\n\nFormat:\n{\n  \"complete\": true/false,\n  \"missingInfo\": [\"reproduction steps\", \"expected behavior\"],\n  \"tasks\": [{\n    \"subject\": \"Bug title\",\n    \"description\": \"CURRENT STATE: What's broken\\nSTEPS TO REPRODUCE:\\n1. Step\\n2. Step\\nEXPECTED: Correct behavior\",\n    \"estimatedHours\": null,\n    \"tags\": [\"bug\", \"urgent\"],\n    \"needsManagerApproval\": false\n  }]\n}\n\nIMPORTANT: Respond ONLY with valid JSON.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-bug",
+      "name": "Bug Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "type",
+              "name": "messageType",
+              "value": "approval",
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "value": "low",
+              "type": "string"
+            },
+            {
+              "id": "phase",
+              "name": "workflowPhase",
+              "value": "manage",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "aiPrompt",
+              "value": "Extract approval details.\n\nFormat:\n{\n  \"tasks\": [{\n    \"action\": \"update\",\n    \"taskReference\": \"Task ID from message\",\n    \"description\": \"Approval note\",\n    \"billable\": true/false,\n    \"tags\": [\"approved\"],\n    \"moveToColumn\": \"To Do\"\n  }]\n}\n\nIMPORTANT: Respond ONLY with valid JSON.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-approval",
+      "name": "Approval Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "type",
+              "name": "messageType",
+              "value": "estimation",
+              "type": "string"
+            },
+            {
+              "id": "phase",
+              "name": "workflowPhase",
+              "value": "manage",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "aiPrompt",
+              "value": "Extract time estimation from planning poker result.\n\nFormat:\n{\n  \"tasks\": [{\n    \"action\": \"update\",\n    \"taskReference\": \"Task ID\",\n    \"estimatedHours\": <number>,\n    \"storyPoints\": <number>,\n    \"tags\": [\"estimated\"],\n    \"removeTag\": \"to-estimate\",\n    \"moveToColumn\": \"To Do\"\n  }]\n}\n\nIMPORTANT: Respond ONLY with valid JSON.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-estimation",
+      "name": "Estimation Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "type",
+              "name": "messageType",
+              "value": "testing",
+              "type": "string"
+            },
+            {
+              "id": "phase",
+              "name": "workflowPhase",
+              "value": "deliver",
+              "type": "string"
+            },
+            {
+              "id": "prompt",
+              "name": "aiPrompt",
+              "value": "Extract testing completion details.\n\nFormat:\n{\n  \"tasks\": [{\n    \"action\": \"update\",\n    \"taskReference\": \"Task ID\",\n    \"testingComplete\": true,\n    \"tags\": [\"tested\"],\n    \"moveToColumn\": \"Tested\",\n    \"readyForClient\": true\n  }]\n}\n\nIMPORTANT: Respond ONLY with valid JSON.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-testing",
+      "name": "Testing Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition"
+      },
+      "id": "merge-contexts",
+      "name": "Merge Contexts",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "HTTP-Referer",
+              "value": "https://n8n.io"
+            },
+            {
+              "name": "X-Title",
+              "value": "n8n Task Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "google/gemini-2.0-flash-exp:free"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"user\",\n    \"content\": \"Subject: \" + $json.subject + \"\\nBody: \" + $json.snippet + \"\\nFrom: \" + $json.from + \"\\n\\n\" + $json.aiPrompt\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": "0.3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-generator",
+      "name": "AI Task Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        520
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  try {\n    let content = '';\n    if (item.json.choices && item.json.choices[0]) {\n      content = item.json.choices[0].message.content;\n    } else if (item.json.content) {\n      content = item.json.content;\n    } else {\n      throw new Error('No AI response');\n    }\n    \n    content = content.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n    const parsed = JSON.parse(content);\n    \n    const emailData = item.json;\n    const hasTaskArray = parsed.tasks && Array.isArray(parsed.tasks);\n    \n    if (hasTaskArray) {\n      parsed.tasks.forEach((task, idx) => {\n        results.push({\n          json: {\n            taskId: `task-${Date.now()}-${idx}`,\n            subject: task.subject || emailData.subject,\n            description: task.description || '',\n            board: task.board || emailData.defaultBoard || 'Backlog',\n            column: task.column || task.moveToColumn || emailData.defaultColumn || 'Backlog',\n            tags: task.tags ? task.tags.join(',') : emailData.defaultTags || '',\n            priority: emailData.priority || 'medium',\n            action: task.action || 'create',\n            estimatedHours: task.estimatedHours || null,\n            storyPoints: task.storyPoints || null,\n            \n            // Completeness check\n            complete: parsed.complete !== false,\n            missingInfo: parsed.missingInfo || [],\n            attachmentsNeeded: task.attachmentsNeeded || [],\n            \n            // Workflow control\n            messageType: emailData.messageType || 'unknown',\n            workflowPhase: emailData.workflowPhase || 'collect',\n            billable: task.billable || false,\n            needsManagerApproval: task.needsManagerApproval || false,\n            testingComplete: task.testingComplete || false,\n            readyForClient: task.readyForClient || false,\n            taskReference: task.taskReference || null,\n            \n            // Metadata\n            emailFrom: emailData.from,\n            emailDate: emailData.date,\n            emailSubject: emailData.subject,\n            createdAt: new Date().toISOString(),\n            status: 'todo',\n            parseSuccess: true\n          }\n        });\n      });\n    } else {\n      throw new Error('Invalid structure: tasks array required');\n    }\n  } catch (error) {\n    results.push({\n      json: {\n        taskId: `error-${Date.now()}`,\n        subject: item.json.subject || 'Parse Error',\n        parseSuccess: false,\n        parseError: error.message,\n        rawContent: JSON.stringify(item.json)\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "parse-json",
+      "name": "Parse & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-parse",
+              "leftValue": "={{ $json.parseSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-parse-success",
+      "name": "Parse Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-complete",
+              "leftValue": "={{ $json.complete }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-complete",
+      "name": "Is Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⚠️ CLARIFICATION NEEDED\nTask info incomplete.\nDraft clarification email for user review.",
+        "height": 200,
+        "width": 280
+      },
+      "id": "sticky-clarify",
+      "name": "Sticky Note - Clarify",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔀 CLASSIFICATION\nAnalyzes email content using regex patterns to determine message type:\n- Feature Request\n- Bug Report\n- Approval\n- Time Estimation\n- Mixed/Other",
+        "height": 360,
+        "width": 320
+      },
+      "id": "e1fa3e34-8738-4ce6-9714-116f158b4085",
+      "name": "Sticky Note - Classify",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "draft-email",
+              "name": "clarificationDraft",
+              "value": "=Subject: Clarification needed - {{ $json.subject }}\n\nBonjour,\n\nMerci pour votre demande. Pour mieux vous aider, nous avons besoin de précisions:\n\n{{ $json.missingInfo.join('\\n- ') }}\n\n{{ $json.attachmentsNeeded.length > 0 ? 'Documents nécessaires:\\n- ' + $json.attachmentsNeeded.join('\\n- ') : '' }}\n\nCordialement,\nL'équipe",
+              "type": "string"
+            },
+            {
+              "id": "alert-msg",
+              "name": "userAlert",
+              "value": "=⚠️ CLARIFICATION REQUIRED\n\nTask: {{ $json.subject }}\nFrom: {{ $json.emailFrom }}\n\nMissing: {{ $json.missingInfo.join(', ') }}\n\nPlease review and send clarification email.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "draft-clarification",
+      "name": "Draft Clarification",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2220,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "alert-clarification",
+      "name": "🔔 Clarification Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ✅ PHASE 2: MANAGE/REVIEW\nRoutes complete tasks based on type:\n- Features → Estimation workflow\n- Bugs → Priority assessment\n- Approvals → Move to To Do\n- Estimates → Update & schedule",
+        "height": 280,
+        "width": 380
+      },
+      "id": "sticky-phase2",
+      "name": "Sticky Note - Phase 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🎯 CONTEXT ENRICHMENT\nAdds metadata for each message type:\n- Message type identifier\n- Priority level\n- Default board/column\n- Default tags\n- AI prompt template",
+        "height": 720,
+        "width": 320
+      },
+      "id": "9e0ff8ea-96ac-4923-a965-8cb01fc32493",
+      "name": "Sticky Note - Context",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "feature"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "feature_workflow"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "bug"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "bug_workflow"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "approval"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "approval_workflow"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "estimation"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "estimation_workflow"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "testing"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "testing_workflow"
+            }
+          ]
+        }
+      },
+      "id": "route-workflow",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Task ID": "={{ $json.taskId }}",
+            "Subject": "={{ $json.subject }}",
+            "Description": "={{ $json.description }}",
+            "Board": "={{ $json.board }}",
+            "Column": "={{ $json.column }}",
+            "Tags": "={{ $json.tags }}",
+            "Status": "to-estimate",
+            "Area": "",
+            "Estimated Hours": "={{ $json.estimatedHours }}"
+          }
+        }
+      },
+      "id": "create-feature-task",
+      "name": "Create Feature Task",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        480
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-billable",
+              "leftValue": "={{ $json.billable }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "check-urgent",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "needs-approval",
+      "name": "Needs Manager Approval?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "approval-draft",
+              "name": "approvalDraft",
+              "value": "=Subject: Approval Request - {{ $json.subject }}\n\nManager,\n\nTask: {{ $json.subject }}\nFrom: {{ $json.emailFrom }}\nType: {{ $json.messageType }}\nPriority: {{ $json.priority }}\n{{ $json.billable ? 'BILLABLE - Client approval needed' : 'Internal bug fix' }}\n\nDescription:\n{{ $json.description }}\n\nPlease approve or reject.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "draft-approval-request",
+      "name": "Draft Approval Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2660,
+        540
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "alert-approval",
+      "name": "🔔 Approval Request Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "id": "={{ $json.taskReference }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Column": "To Do",
+            "Tags": "approved",
+            "Billable": "={{ $json.billable }}"
+          }
+        }
+      },
+      "id": "move-to-todo",
+      "name": "Move to To Do",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        720
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "id": "={{ $json.taskReference }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Estimated Hours": "={{ $json.estimatedHours }}",
+            "Story Points": "={{ $json.storyPoints }}",
+            "Tags": "estimated",
+            "Column": "To Do"
+          }
+        }
+      },
+      "id": "update-estimation",
+      "name": "Update Estimation",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        840
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "## 📦 PHASE 3: DELIVER\nHandles task completion:\n- Test on staging/dev\n- Joint video review\n- Calculate client cost\n- Notify client",
+        "height": 280,
+        "width": 340
+      },
+      "id": "sticky-phase3",
+      "name": "Sticky Note - Phase 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI PROCESSING\nSends email + context to LLM API (OpenRouter/free model).\nGenerates structured JSON tasks.\n\nSetup:\n1. Get free API key from openrouter.ai\n2. Add HTTP Header Auth credential:\n   - Name: Authorization\n   - Value: Bearer YOUR_API_KEY",
+        "height": 280,
+        "width": 360
+      },
+      "id": "e554cfab-4efc-4c30-8caf-1b2ebdf3e39a",
+      "name": "Sticky Note - AI",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "id": "={{ $json.taskReference }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Column": "Tested",
+            "Tags": "tested,ready-for-client",
+            "Testing Date": "={{ $now }}"
+          }
+        }
+      },
+      "id": "move-to-tested",
+      "name": "Move to Tested",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        960
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "id": "={{ $json.taskReference }}"
+      },
+      "id": "get-task-details",
+      "name": "Get Task Details",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2660,
+        960
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate client cost based on estimated hours and rate\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const estimatedHours = item.json['Estimated Hours'] || item.json.estimatedHours || 0;\n  const hourlyRate = 75; // EUR per hour\n  const coefficient = 1.2; // 20% margin\n  \n  const clientCost = Math.round(estimatedHours * hourlyRate * coefficient);\n  \n  results.push({\n    json: {\n      ...item.json,\n      clientCost: clientCost,\n      currency: 'EUR',\n      hourlyRate: hourlyRate,\n      coefficient: coefficient\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "calculate-cost",
+      "name": "Calculate Client Cost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "notification-draft",
+              "name": "clientNotificationDraft",
+              "value": "=Subject: Task Complete - {{ $json.Subject || $json.subject }}\n\nBonjour,\n\nVotre tâche est terminée et testée:\n\nTâche: {{ $json.Subject || $json.subject }}\nDescription: {{ $json.Description || $json.description }}\n\nCoût: {{ $json.clientCost }} {{ $json.currency }}\nTemps: {{ $json['Estimated Hours'] || $json.estimatedHours }} heures\n\nLa tâche est disponible sur l'environnement de staging pour validation.\n\nCordialement,\nL'équipe",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "draft-client-notification",
+      "name": "Draft Client Notification",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3100,
+        960
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "alert-client-notification",
+      "name": "🔔 Client Notification Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3320,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🗄️ PHASE 4: STORE/ARCHIVE\nEnd of billing period:\n- Check schedule (monthly)\n- Compile task list\n- Generate report\n- Archive completed tasks",
+        "height": 360,
+        "width": 420
+      },
+      "id": "sticky-phase4",
+      "name": "Sticky Note - Phase 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ✅ VALIDATION\nParses AI JSON response.\nValidates structure.\nExtracts task fields.\nHandles errors gracefully.\n\nOutputs:\n- subject, description\n- board, column, tags\n- priority, status\n- timestamps\n- metadata",
+        "height": 320,
+        "width": 340
+      },
+      "id": "d535bf24-fde5-403d-b8b3-be228c590541",
+      "name": "Sticky Note - Parse",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "monthDay",
+              "monthDay": 1,
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "billing-schedule",
+      "name": "Monthly Billing Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        1340
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "options": {
+          "filterByFormula": "OR({Column}='Tested',{Column}='Approved',{Status}='done')"
+        }
+      },
+      "id": "fetch-billable-tasks",
+      "name": "Fetch Billable Tasks",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        460,
+        1340
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile billing report\nconst items = $input.all();\nconst tasks = items.map(item => item.json);\n\nconst report = {\n  period: new Date().toISOString().slice(0, 7),\n  totalTasks: tasks.length,\n  totalHours: tasks.reduce((sum, t) => sum + (t['Estimated Hours'] || 0), 0),\n  totalCost: tasks.reduce((sum, t) => {\n    const hours = t['Estimated Hours'] || 0;\n    return sum + (hours * 75 * 1.2);\n  }, 0),\n  tasksByType: {\n    feature: tasks.filter(t => t.Tags && t.Tags.includes('feature')).length,\n    bug: tasks.filter(t => t.Tags && t.Tags.includes('bug')).length,\n    other: tasks.filter(t => !t.Tags || (!t.Tags.includes('feature') && !t.Tags.includes('bug'))).length\n  },\n  tasks: tasks.map(t => ({\n    id: t['Task ID'],\n    subject: t.Subject,\n    hours: t['Estimated Hours'],\n    cost: Math.round((t['Estimated Hours'] || 0) * 75 * 1.2),\n    status: t.Status,\n    column: t.Column\n  }))\n};\n\nreturn [{ json: report }];"
+      },
+      "id": "compile-report",
+      "name": "Compile Billing Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        1340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "report-draft",
+              "name": "reportDraft",
+              "value": "=RAPPORT DE FACTURATION\nPériode: {{ $json.period }}\n\n=== RÉSUMÉ ===\nTâches totales: {{ $json.totalTasks }}\nHeures totales: {{ $json.totalHours }}h\nCoût total: {{ $json.totalCost }} EUR\n\nPar type:\n- Features: {{ $json.tasksByType.feature }}\n- Bugs: {{ $json.tasksByType.bug }}\n- Autres: {{ $json.tasksByType.other }}\n\n=== DÉTAILS DES TÂCHES ===\n{{ $json.tasks.map(t => `\n${t.id} - ${t.subject}\nHeures: ${t.hours}h | Coût: ${t.cost} EUR\nStatut: ${t.status} | Colonne: ${t.column}\n`).join('\\n') }}\n\nGénéré le: {{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "format-report",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        1340
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "alert-billing-report",
+      "name": "🔔 Billing Report Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        1340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "id": "={{ $json.id }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Column": "Archived",
+            "Archived Date": "={{ $now }}"
+          }
+        }
+      },
+      "id": "archive-tasks",
+      "name": "Archive Tasks",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1340,
+        1340
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "## 🔍 MONITORING & ALERTS\nOptional daily checks:\n- Unpicked tasks (response time)\n- Unfinished tasks (resolution time)\n- Send reminders to assignees\n- Notify clients if delayed",
+        "height": 320,
+        "width": 460
+      },
+      "id": "sticky-monitoring",
+      "name": "Sticky Note - Monitoring",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 💾 OUTPUT\nSuccess path → Save to database\nError path → Log/notify admin\n\nReplace NoOp nodes with:\n- Airtable/NocoDB (create record)\n- HTTP Request (webhook)\n- Email/Slack (notifications)\n- Google Sheets (append row)",
+        "height": 280,
+        "width": 360
+      },
+      "id": "36ea9001-c91c-4706-887b-ae84d3c18d48",
+      "name": "Sticky Note - Output",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "daily-check",
+      "name": "Daily Check Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        1780
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "base": {
+          "__rl": true,
+          "value": "appXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblXXXXXXXXXXXXXX",
+          "mode": "id"
+        },
+        "options": {
+          "filterByFormula": "AND({Status}='todo',{Column}='To Do')"
+        }
+      },
+      "id": "fetch-todo-tasks",
+      "name": "Fetch To Do Tasks",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        460,
+        1780
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-overdue-response",
+              "leftValue": "={{ $json['Expected Response'] }}",
+              "rightValue": "={{ $now }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "before"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-overdue-response",
+      "name": "Response Overdue?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        1780
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reminder-draft",
+              "name": "reminderDraft",
+              "value": "=Subject: Reminder - Task Awaiting Response\n\nBonjour,\n\nTâche: {{ $json.Subject }}\nAssigné à: {{ $json.Assignee || 'Non assigné' }}\n\nCette tâche attend une réponse depuis {{ $json['Expected Response'] }}.\n\nMerci de la traiter rapidement.\n\nCordialement,\nL'équipe",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "draft-reminder",
+      "name": "Draft Reminder",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        1780
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "alert-reminder",
+      "name": "🔔 Reminder Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        1780
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "error-output",
+      "name": "❌ Error Output",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📋 SETUP INSTRUCTIONS\n\n1. API Keys:\n   - OpenRouter: openrouter.ai (free)\n   - Add as HTTP Header Auth credential\n\n2. Database (choose one):\n   - Airtable: airtable.com\n   - NocoDB: nocodb.com (self-hosted)\n\n3. Enable Optional Nodes:\n   - Email Trigger (IMAP)\n   - Schedule Triggers\n   - Database Update nodes\n\n4. Configure Alerts:\n   - Replace NoOp nodes with Email/Slack\n   - Or keep as manual review points\n\n5. Test Flow:\n   - Run with test data\n   - Check each phase output\n   - Verify database updates",
+        "height": 480,
+        "width": 420
+      },
+      "id": "sticky-setup",
+      "name": "Sticky Note - Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔄 OPTIONAL: STATUS MONITORING\n\nScheduled workflow to check task status:\n1. Fetch tasks from database\n2. Check expected response/resolution times\n3. Send reminders if overdue\n4. Update assignees via email/Slack\n\nSimilar to reference workflow's daily check feature.",
+        "height": 320,
+        "width": 520
+      },
+      "id": "26d3337d-5055-460e-b995-b74221647aac",
+      "name": "Sticky Note - Monitoring",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        896
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Test Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Email Data": {
+      "main": [
+        [
+          {
+            "node": "Classify Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Message Type": {
+      "main": [
+        [
+          {
+            "node": "Feature Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bug Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Approval Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Estimation Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Testing Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feature Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bug Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estimation Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Testing Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Contexts": {
+      "main": [
+        [
+          {
+            "node": "AI Task Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Task Generator": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Success?": {
+      "main": [
+        [
+          {
+            "node": "Is Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❌ Error Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Complete?": {
+      "main": [
+        [
+          {
+            "node": "Draft Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Clarification": {
+      "main": [
+        [
+          {
+            "node": "🔔 Clarification Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "node": "Create Feature Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Needs Manager Approval?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to To Do",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Estimation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to Tested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Manager Approval?": {
+      "main": [
+        [
+          {
+            "node": "Draft Approval Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Feature Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Approval Request": {
+      "main": [
+        [
+          {
+            "node": "🔔 Approval Request Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to Tested": {
+      "main": [
+        [
+          {
+            "node": "Get Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Task Details": {
+      "main": [
+        [
+          {
+            "node": "Calculate Client Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Client Cost": {
+      "main": [
+        [
+          {
+            "node": "Draft Client Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Client Notification": {
+      "main": [
+        [
+          {
+            "node": "🔔 Client Notification Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly Billing Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Billable Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Billable Tasks": {
+      "main": [
+        [
+          {
+            "node": "Compile Billing Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Billing Report": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "🔔 Billing Report Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔔 Billing Report Alert": {
+      "main": [
+        [
+          {
+            "node": "Archive Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Check Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch To Do Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch To Do Tasks": {
+      "main": [
+        [
+          {
+            "node": "Response Overdue?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Overdue?": {
+      "main": [
+        [
+          {
+            "node": "Draft Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Reminder": {
+      "main": [
+        [
+          {
+            "node": "🔔 Reminder Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "full-lifecycle-automation-v1"
+  },
+  "id": "full-lifecycle-email-task-automation",
+  "versionId": "1.0.0",
+  "tags": []
+}
