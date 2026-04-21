@@ -4,4 +4,4 @@ To do:
 - test it with an LLM API
 - test it with a DB API
 
-![Screenshot of initial workflow.](/assets/images/Workflow.png)
+![Screenshot of initial workflow.](/Workflow.png)
